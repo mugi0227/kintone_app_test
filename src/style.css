@@ -1,0 +1,461 @@
+/*
+ * キャリアアンカー診断アプリ - スタイルシート
+ */
+
+/* ========================================
+   質問テキストのスタイル
+   ======================================== */
+
+.question-text {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background-color: #f5f7fa;
+  border-left: 4px solid #3498db;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.question-text strong {
+  color: #2c3e50;
+  margin-right: 8px;
+}
+
+/* 詳細画面での回答表示 */
+.answer-badge {
+  display: inline-block;
+  margin-left: 12px;
+  padding: 4px 12px;
+  background-color: #3498db;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* ========================================
+   お気に入り選択セクション
+   ======================================== */
+
+.favorites-section {
+  padding: 24px;
+  margin: 20px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.favorites-section h3 {
+  margin: 0 0 16px 0;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.favorites-instruction {
+  color: white;
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.favorites-note {
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+  text-align: center;
+}
+
+.favorites-note strong {
+  font-weight: bold;
+}
+
+/* お気に入りドロップダウン（V2用） */
+.favorites-dropdowns {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.favorite-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.favorite-dropdown-label {
+  color: #2c3e50;
+  font-weight: bold;
+  font-size: 14px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.favorite-dropdown-item kuc-dropdown,
+.favorite-dropdown-item [class^="kuc-dropdown"],
+.favorite-dropdown-item [class*=" kuc-dropdown"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+.favorite-dropdown-select {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 2px solid #dfe6f0;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #2c3e50;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.favorite-dropdown-select:focus {
+  outline: none;
+  border-color: #7f8ff4;
+  box-shadow: 0 0 0 3px rgba(127, 143, 244, 0.3);
+}
+
+.result-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e3e8f4;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.result-section__header h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #2f3a5f;
+}
+
+.result-section__header p {
+  margin: 0;
+  color: #5f6c92;
+  font-size: 14px;
+}
+
+.result-section__button {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #7f8ff4, #5a6ee8);
+  border: none;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.result-section__button:disabled {
+  background: #c7cce8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.result-section__button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(127, 143, 244, 0.35);
+}
+
+.result-section__hint {
+  margin: 12px 0 0 0;
+  font-size: 13px;
+}
+
+.result-section__hint.is-warning {
+  color: #e76f51;
+}
+
+.result-section__hint.is-info {
+  color: #4f7cff;
+}
+
+.score-placeholder,
+.chart-placeholder,
+.chart-warning {
+  padding: 24px;
+  text-align: center;
+  color: #7482a5;
+  background-color: #f5f7fb;
+  border: 1px dashed #d5dcee;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.chart-warning {
+  color: #c05621;
+  background-color: #fff7ed;
+  border-color: #f4cea5;
+}
+
+.score-summary-grid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .score-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.score-card {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e3e8f4;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.score-card--top {
+  border-color: #7f8ff4;
+  box-shadow: 0 10px 24px rgba(127, 143, 244, 0.3);
+}
+
+.score-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.score-card__type {
+  font-weight: 600;
+  color: #2f3a5f;
+}
+
+.score-card__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #edf0ff;
+  color: #5a6ee8;
+  font-size: 12px;
+}
+
+.score-card__value {
+  font-size: 26px;
+  font-weight: bold;
+  color: #101845;
+}
+
+.score-card__base {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #6c789f;
+}
+
+.chart-placeholder,
+.chart-warning {
+  margin-top: 24px;
+}
+
+.radar-panel-container {
+  margin-top: 24px;
+}
+
+.radar-panel {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  padding: 24px;
+  border-radius: 16px;
+  background: #f7f9ff;
+  border: 1px solid #e0e7ff;
+}
+
+.radar-panel__chart {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: inset 0 0 0 1px #eef2ff;
+}
+
+.radar-panel__info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: inset 0 0 0 1px #eef2ff;
+}
+
+.radar-panel__label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f8ff4;
+  margin-bottom: 8px;
+}
+
+.radar-panel__info h4 {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  color: #1e266d;
+}
+
+.radar-panel__info p {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5270;
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .radar-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* お気に入り選択前のプレースホルダー */
+.favorites-placeholder {
+  padding: 40px;
+  text-align: center;
+  background-color: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.favorites-placeholder p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ========================================
+   スコア表示エリア
+   ======================================== */
+
+/* スコアフィールドのグループ化推奨 */
+.career-scores-group {
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.career-scores-group .field-group-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+/* ========================================
+   キャリアタイプ判定結果
+   ======================================== */
+
+/* 複数行文字列フィールドのスタイル */
+.career-type-result-field {
+  padding: 20px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  line-height: 1.8;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   レスポンシブ対応
+   ======================================== */
+
+@media (max-width: 768px) {
+  .question-text {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .favorites-section {
+    padding: 16px;
+  }
+
+  .favorites-section h3 {
+    font-size: 18px;
+  }
+
+  .favorites-instruction {
+    font-size: 13px;
+  }
+
+  .answer-badge {
+    display: block;
+    margin-left: 0;
+    margin-top: 8px;
+    text-align: center;
+  }
+}
+
+/* ========================================
+   印刷用スタイル
+   ======================================== */
+
+@media print {
+  .question-text {
+    background-color: white;
+    border-left: 2px solid #333;
+    page-break-inside: avoid;
+  }
+
+  .favorites-section {
+    background: white;
+    border: 2px solid #333;
+    color: #333;
+  }
+
+  .favorites-section h3,
+  .favorites-instruction,
+  .favorites-note {
+    color: #333;
+  }
+
+  .answer-badge {
+    background-color: #ddd;
+    color: #333;
+  }
+}
+
+/* ========================================
+   アクセシビリティ
+   ======================================== */
+
+/* フォーカス時のアウトライン強調 */
+input[type="radio"]:focus,
+select:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+/* ハイコントラストモード対応 */
+@media (prefers-contrast: high) {
+  .question-text {
+    border-left-width: 6px;
+  }
+
+  .favorites-section {
+    border: 3px solid #000;
+  }
+
+  .answer-badge {
+    border: 2px solid #000;
+  }
+}
