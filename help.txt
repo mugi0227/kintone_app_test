@@ -1,0 +1,832 @@
+kViewerkViewer
+新バージョンJavaScriptカスタマイズ
+※本設定は動作の保証を行っておらず、サポートの対象外です。あらかじめご了承ください。
+
+JavaScriptカスタマイズとは
+JavaScriptカスタマイズでは、ページ表示時に発生する様々なイベントに対してイベントリスナーを登録することにより、イベント発生時に任意の処理 (例: DOM要素の操作や外部APIの呼び出し)を実行することが可能です。これにより、FormBridgeの標準の機能を超えて見た目や挙動をカスタマイズすることができます。
+
+カスタマイズ用のJavaScriptファイルをフォームに設定する手順は操作ガイドを参照ください。
+
+なお、従来のバージョンのフォームにおけるJavaScriptカスタマイズとの違いに関しては移行ガイドを参照ください。
+
+JavaScriptカスタマイズAPIの型定義ファイル
+JavaScriptカスタマイズのAPIの型情報をまとめた型定義ファイルを下記からダウンロードいただけます。
+
+本ドキュメントに記載している formBridge 変数やイベント名、イベントハンドラに渡される値の構造、関数など、編集時に参照するための情報が含まれており、カスタマイズスクリプトの編集時にエディタの補完・型情報表示の参照先としてご利用いただけます。
+
+型定義ファイル(formbridge-javascript-customize.d.ts)をダウンロード
+
+Visual Studio Codeでの型定義ファイルの利用例
+型定義ファイルを利用して、Visual Studio Code での編集時に補完や型情報表示を有効にすることができます。ここでは、2つの方法をご紹介します。
+
+簡易版（最も手軽に補完を有効化する方法）
+TypeScript 環境をセットアップせず、最小限の手順で補完機能のみを有効にできる方法です。型エラーのチェックは行われません。記述補助目的の簡易利用としてご利用ください。
+
+手順:
+
+型定義ファイル(formbridge-javascript-customize.d.ts)を任意の場所に保存します。
+利用するJavaScriptファイルの先頭に以下のように記述します。
+/// <reference path="./formbridge-javascript-customize.d.ts" />
+※相対パスは実際の保存場所に合わせて修正してください。上記は同じディレクトリに保存した場合の例です。
+
+プロジェクトセットアップ版（型チェックも行う場合）
+プロジェクト全体に TypeScript 環境をセットアップし、型エラーチェックも含めた本格的な開発サポートを受けられる方法です。設定後は、JavaScript ファイルでも厳密な型チェックが行われ、コードの品質向上や保守性の確保に適しています。
+
+なお利用するには事前に Node.js をインストールしておく必要があります。Node.js のインストール方法は公式ダウンロードページをご確認ください。
+
+ディレクトリ構成例:
+
+my-customize-project/
+├─ src/
+│   ├─ customize.js                           # カスタマイズJSスクリプト
+│   └─ formbridge-javascript-customize.d.ts   # 型定義ファイル
+├─ package.json                               # プロジェクト設定ファイル(依存パッケージやスクリプトを管理)
+└─ tsconfig.json                              # TypeScript 設定ファイル
+※ package.json および tsconfig.json は下記に記載した手順の中で生成されるファイルです。
+
+手順
+
+コマンドを実行できる画面（ターミナルやコマンドプロンプトなど）でプロジェクトディレクトリへ移動し、次のコマンドを順番に入力します。これによりプロジェクトの初期化、TypeScript の導入、設定ファイルの生成が行われます。
+npm init -y
+npm install --save-dev typescript
+npx tsc --init
+tsconfig.json を開き、JavaScriptファイル(.js)も型チェック対象にするため checkJs: true を設定します（その他の初期設定はそのままで構いません）。
+{
+  "compilerOptions": {
+    // 以下を追加します。初期化直後に設定される既定値のままで問題ありません。
+    "checkJs": true
+  }
+}
+Visual Studio Code を再読み込み（またはウィンドウの再起動）すると、プロジェクト全体で補完と型チェックが有効になります。
+開発ヒント
+レコード(入力)の値や一部のフィールド設定値はフィールドタイプによりその型が決まるため、型定義ファイルでは unknown 型として定義されています。これに対してカスタマイズスクリプト内では、型注釈をつけることで型安全にアクセスできます。たとえば数値フィールド（フィールドコードが 'number'）の値を利用する場合は、以下のように JSDoc 型注釈を利用できます。
+
+formBridge.events.on('form.show', function(context) {
+  // 回答データ全体を取得
+  const record = context.getRecord();
+ 
+  // 数値フィールドの値を取得. 数値または null (未入力時)として扱えるように型注釈を追記
+  const radius = /** @type {number|null} */ (record['number']?.value);
+  if (radius != null) {
+    const circleArea =  Math.PI * radius ** 2;
+    // ...circleArea を用いた処理などを記述
+  }
+});
+JavaScriptカスタマイズと formBridge 変数
+JavaScript カスタマイズを有効にしたフォームでは、グローバルオブジェクト formBridge が定義されます。この formBridge オブジェクトを通じて、フォームの回答処理や画面の動きを自分で制御したり、処理のタイミングにあわせて関数を呼び出したりすることができます。
+
+formBridge オブジェクトには、以下の 2 つの領域（名前空間）が用意されています。
+
+formBridge.fn
+各画面の .show イベント（form.show, confirm.show, finish.show）したあとに利用できます（.show イベントハンドラ内でも参照可能です）。回答データを取得する、カスタマイズスクリプトから回答処理を実行する、といった関数群が定義されています。
+
+詳細は「formBridge.fn 関数リファレンス」の項目を参照してください。
+
+formBridge.events
+on 関数のみが定義されており、特定のタイミング（イベント）で実行する処理（イベントハンドラ）を登録するために使います。この on 関数はフォームの読み込み直後から利用できます。
+
+イベントハンドラの登録方法やイベントの種類については、「formBridge.events イベントリファレンス」の項目を参照してください。
+
+formBridge.fn 関数リファレンス
+formBridge.fn には、フォームの回答データを参照する関数、および回答処理を実行する関数が定義されています。
+
+いずれの関数も各画面の .show イベント（form.show, confirm.show, finish.show）内やそれ以降のどんなタイミングでも実行できます（.show イベントより前のタイミングでは関数は未定義となり利用できません）。
+
+なお画面の種類により利用できない関数があります。関数を利用できない画面で呼び出すと例外をスローします。詳細は各関数の説明を参照ください。
+
+formBridge.fn.getRecord()
+フォームの回答データを取得します。
+
+フィールドの値変更イベント（form.field.change. から始まるイベント）のハンドラ内では変更前の値を取得できます。変更後の値はイベント引数の value を参照してください。
+
+利用できる画面
+すべての画面
+例
+戻り値の形式は以下のようになります。
+
+const record = formBridge.fn.getRecord();
+console.log(record);
+// => {
+//  "fieldCode1": { "value": "value" }, // 1行文字列, 複数行文字列など
+//  "fieldCode2": { "value": 10 }, // 数値, 計算など
+//  "fieldCode3": { "value": ['value1', 'value2'] }, // チェックボックス, 複数選択など
+//  "fieldCode4": { "value": [
+//    { "value": {
+//      "fieldCodeInTable1": { "value": "value" },
+//      "fieldCodeInTable2": { "value": 10 },
+//    }}, // テーブル行データ(recordと同じ形式)
+//    ...
+//  ]}, // テーブル
+//  ...
+// }
+formBridge.fn.getFieldSettings()
+フィールドの設定を取得します。
+
+利用できる画面
+回答画面(ステップフォーム含む)
+例
+戻り値の形式は以下のようになります。各フィールド設定の内容は型定義ファイルを参照ください。
+
+const settings = formBridge.fn.getFieldSettings();
+console.log(settings);
+// => [
+//   {
+//      code: 'single_line_text',
+//      type: 'SINGLE_LINE_TEXT',
+//      isHide: boolean;
+//      (...その他のフィールド設定...)
+//   },
+//   (...フィールドの数分設定オブジェクトが配置...)
+// ]
+formBridge.fn.updateFieldSetting()
+フィールドの設定を変更します。
+
+対象となるフィールドの種類、変更対象の設定名、変更後の値の組み合わせが無効なときは何も変更せずに処理が終了します。例えば、1行文字列フィールドに対して、選択肢の設定を変更するように引数を指定した場合などが該当します。
+
+テーブル内フィールドの設定を変更する場合は formBridge.fn.updateFieldInSubtableSetting() をご利用ください。
+
+引数リスト
+
+引数名
+説明
+fieldCode	変更するフィールドのフィールドコード
+settingName	変更する設定名。現状は "options" (選択肢リスト)のみ指定できます
+settingValue	変更する設定値。settingName に "options" を指定した場合は、文字列の配列を指定してください
+※ "options" の設定変更を行う前に値が選択されていた場合、選択されていた値が変更後の設定に含まれていなくても、レコード上は選択状態が保持されています。必要に応じて "form.field.change.(フィールドコード)" イベントや "form.submit"、"confirm.submit" イベントで setFieldValue 関数を利用してレコードの値を上書きしてください。
+利用できる画面
+回答画面(ステップフォーム含む)
+例
+以下はチェックボックスフィールドの選択肢を変更する例です。
+
+// フィールド 'check_box' では '変更前2' が選択されている
+console.log(formBridge.fn.getRecord()['check_box'].value);
+// => ['変更前2']
+// フィールド 'check_box' の設定値
+console.log(formBridge.fn.getFieldSettings());
+// => [
+//   {
+//      code: 'check_box',
+//      type: 'CHECK_BOX',
+//      options: ['変更前1', '変更前2'],
+//      (...その他のフィールド設定...)
+//   },
+//   (...フィールドの数分設定オブジェクトが配置...)
+// ]
+ 
+// フィールド設定を変更
+formBridge.fn.updateFieldSetting('check_box', 'options', ['変更後1', '変更後2']);
+ 
+// 変更した設定が反映されている
+console.log(formBridge.fn.getFieldSettings());
+// => [
+//   {
+//      code: 'check_box',
+//      type: 'CHECK_BOX',
+//      options: ['変更後1', '変更後2'],
+//      (...その他のフィールド設定...)
+//   },
+//   (...フィールドの数分設定オブジェクトが配置...)
+// ]
+// 変更前に選択されていた値('変更前2')は, 設定変更後もそのまま保持される
+console.log(formBridge.fn.getRecord()['check_box'].value);
+// => ['変更前2']
+formBridge.fn.updateFieldInSubtableSetting()
+テーブル内フィールドの設定を変更します。
+
+対象となるフィールドの種類、変更対象の設定名、変更後の値の組み合わせが無効なときは何も変更せずに処理が終了します。例えば、1行文字列フィールドに対して、選択肢の設定を変更するように引数を指定した場合などが該当します。
+
+引数リスト
+
+引数名
+説明
+parentFieldCode	変更対象のフィールドが属するテーブルのフィールドコード
+fieldCode	変更するフィールドのフィールドコード
+settingName	変更する設定名。現状は "options" (選択肢リスト)のみ指定できます
+settingValue	変更する設定値。settingName に "options" を指定した場合は、文字列の配列を指定してください
+※ "options" の設定変更を行う前に値が選択されていた場合、選択されていた値が変更後の設定に含まれていなくても、レコード上は選択状態が保持されています。必要に応じて "form.field.change.(フィールドコード)" イベントや "form.submit"、"confirm.submit" イベントで setFieldValue 関数を利用してレコードの値を上書きしてください。
+利用できる画面
+回答画面(ステップフォーム含む)
+例
+以下はチェックボックスフィールドの選択肢を変更する例です。
+
+// テーブル 'subtable' 内の フィールド 'check_box' の1行目のレコードでは '変更前2' が選択されている
+console.log(formBridge.fn.getRecord()['subtable'].value[0].value['check_box'].value);
+// => ['変更前2']
+// フィールド 'check_box' の設定値
+console.log(formBridge.fn.getFieldSettings());
+// => [
+//   {
+//      code: 'subtable',
+//      type: 'SUBTABLE',
+//      tableFields: [
+//        {
+//          code: 'check_box',
+//          type: 'CHECK_BOX',
+//          options: ['変更前1', '変更前2'],
+//          (...その他のフィールド設定項目...)
+//        },
+//        (...その他のテーブル内フィールドの設定...)
+//      ],
+//      (...その他のテーブルフィールドの設定項目...)
+//   },
+//   (...その他のフィールド設定...)
+// ]
+ 
+// フィールド設定を変更
+formBridge.fn.updateFieldInSubtableSetting('subtable', 'check_box', 'options', ['変更後1', '変更後2']);
+ 
+// 変更した設定が反映されている
+console.log(formBridge.fn.getFieldSettings());
+// => [
+//   {
+//      code: 'subtable',
+//      type: 'SUBTABLE',
+//      tableFields: [
+//        {
+//          code: 'check_box',
+//          type: 'CHECK_BOX',
+//          options: ['変更後1', '変更後2'],
+//          (...その他のフィールド設定項目...)
+//        },
+//        (...その他のテーブル内フィールドの設定...)
+//      ],
+//      (...その他のテーブルフィールドの設定項目...)
+//   },
+//   (...その他のフィールド設定...)
+// ]
+// 変更前に選択されていた値('変更前2')は, 設定変更後もそのまま保持される
+console.log(formBridge.fn.getRecord()['subtable'].value[0].value['check_box'].value);
+// => ['変更前2']
+formBridge.fn.emitSubmit()
+現在のフォームを強制的に回答します。
+
+※ 本関数は旧関数 formBridge.emitSubmit() と同じものです。formBridge.emitSubmit() も引き続き利用可能ですが、今後は formBridge.fn.emitSubmit() をご利用ください。
+
+利用できる画面
+回答画面(ステップフォーム含む)
+確認画面
+例
+以下のように回答ボタンをクリックする以外のタイミングで回答処理を実行できます。
+
+// フォーム上に配置したカスタムボタンクリック時に回答処理を実行する
+document.querySelector('#my_button').addEventListener('click', function () {
+  formBridge.fn.emitSubmit();
+});
+formBridge.events イベントリファレンス
+formBridge.events では、フォームの動きにあわせて処理を呼び出すための仕組みを提供しています。 こうした仕組みを イベント と呼び、イベントにあわせて実行される処理を イベントハンドラ と呼びます。
+
+イベントを活用することで、フォームの表示や入力のタイミングに応じてカスタマイズ処理を組み込むことができます。たとえば次のような使い分けが考えられます。
+
+• フォームのレイアウト（ヘッダーやフッターなどの DOM 要素）を操作する場合は、form.show イベントにイベントハンドラを登録するのが適しています。
+
+• フィールドの値に対して処理を行いたい場合は、form.field.change.(fieldCode) イベントにイベントハンドラを登録するのが適しています。
+
+この章では、まずイベントリスナーの登録方法を説明し、そのあとに利用可能なイベントごとに詳細を解説していきます。
+
+イベントリスナーの登録方法
+formBridge.events.on() 関数を用いて指定したイベントに対してイベントハンドラを登録することができます。 第一引数はイベント名、第二引数はイベントハンドラ（実行したい処理を定義した関数）です。
+
+formBridge.events.on('form.show', function () {
+	console.log('ハンドラー1を実行');
+});
+イベントハンドラは複数登録することができ、それらは登録した順序で実行されます。
+
+formBridge.events.on('form.show', function () {
+	console.log('ハンドラー1を実行');
+});
+ 
+formBridge.events.on('form.show', function () {
+	console.log('ハンドラー2を実行');
+});
+ 
+// => "ハンドラー1を実行", "ハンドラー2を実行"の順で出力される
+なお、イベントハンドラが非同期処理を含む場合、その完了を待たずに次の処理へ遷移します。イベントハンドラの戻り値にPromiseを指定したり、async 関数を定義した場合も同様です。
+
+たとえば form.submit イベントに非同期処理を含むイベントハンドラを登録すると、その処理が完了する前に回答データの送信処理が始まる可能性があります。この場合、以下のように、preventDefault で標準の処理(回答データの送信)をキャンセルし、非同期処理の完了後に formBridge.fn.emitSubmit を呼び出して回答データの送信を行う、などの処理が必要です。
+
+formBridge.events.on('form.submit', async function(context) {
+  // 非同期処理を行うため, 標準の回答データ送信処理はキャンセルする.
+  context.preventDefault();
+ 
+  const response = await fetch('/extra-data');
+  const someData = await response.json();
+ 
+  // 取得したデータをセット
+  context.setFieldValue('single_line_text', someData);
+ 
+  // 回答データの送信
+  formBridge.fn.emitSubmit();
+});
+イベントハンドラの引数(イベント引数)にはイベントのコンテキスト情報を含んだオブジェクトが渡されます。コンテキスト情報はイベントごとに異なります。各イベントの詳細を参照ください。
+
+formBridge.events.on('form.field.change.single_line_text', function (context) {
+  // 変更前の値
+  const value = context.value;
+  // ...value を用いた処理...
+});
+form.show
+イベント発生タイミング
+フォーム(回答画面)全体を表示したとき, またはステップを移動してフォームを表示したとき(ステップフォーム設定時のみ)
+
+コンテキストオブジェクト
+プロパティ名
+説明
+currentStep	現在表示しているステップ番号(ステップフォーム設定時のみ)
+previousStep	現在表示するひとつ前のステップ番号(ステップフォーム設定時のみ)
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+ステップフォーム設定時は currentStep と previousStep がコンテキストオブジェクトに含まれます。
+
+formBridge.events.on('form.show', function (context) {
+  if (context.previousStep === 2 && context.currentStep === 1) {
+    console.log('ステップ2から移動してステップ1を表示中');
+  }
+});
+回答画面の初回表示時(フォームを初めて表示したとき, および確認画面から戻る操作によりフォームを表示したとき)は previousStep の値は null になります.
+
+formBridge.events.on('form.show', function (context) {
+  if (context.previousStep === null) {
+    console.log('フォームの初回表示時');
+    // 初回表示時のみ実施する処理を定義
+  }
+ 
+  if (context.currentStep === 1) {
+    console.log('ステップ1を表示中');
+    // ステップ1に対してのみ実施する処理を定義(初回表示およびStep2からの移動時)
+  }
+});
+form.submit
+イベント発生タイミング
+回答画面で回答ボタンをクリックしたとき
+
+コンテキストオブジェクト
+プロパティ名
+説明
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+preventDefault()	回答処理をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで回答処理がキャンセルされ、回答画面に留まります。
+
+formBridge.events.on('form.submit', function (context) {
+  context.preventDefault();
+});
+form.submitted
+イベント発生タイミング
+回答画面で回答ボタンをクリックし回答保存プロセスが完了した後
+
+コンテキストオブジェクト
+プロパティ名
+説明
+preventDefault()	完了画面への遷移をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで完了画面への遷移がキャンセルされます。特に完了画面を表示せずに別のページを表示したいときに利用できます。
+
+formBridge.events.on('form.submitted', function (context) {
+  // 完了画面を表示せずに https://example.com へリダイレクト
+  context.preventDefault();
+  window.location.href = 'https://example.com';
+});
+form.confirm
+イベント発生タイミング
+回答画面で確認ボタンをクリックしたとき(確認画面設定時)
+
+コンテキストオブジェクト
+プロパティ名
+説明
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+preventDefault()	確認画面への移動をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで確認画面への遷移がキャンセルされ、回答画面に留まります。
+
+formBridge.events.on('form.confirm', function (context) {
+  context.preventDefault();
+});
+form.step.moving
+イベント発生タイミング
+ステップフォームでステップを移動する前(ステップフォーム設定時)
+
+コンテキストオブジェクト
+プロパティ名
+説明
+currentStep	現在表示しているステップ番号
+nextStep	次に表示しようとしているステップ番号
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+preventDefault()	ステップの移動をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで次のステップ画面への遷移がキャンセルされ、現在のステップ画面に留まります。
+
+formBridge.events.on('form.step.moving', function (context) {
+  if (context.currentStep === 3 && context.nextStep === 2) {
+    console.log('ステップ3からステップ2への遷移を禁止');
+    context.preventDefault();
+  }
+});
+またステップ移動後の画面表示時に処理を行うイベントハンドラについてはform.showを利用してください。
+
+formBridge.events.on('form.step.moving', function (context) {
+  console.log(`form.step.moving, 現在のステップ: ${context.currentStep}, 次のステップ: ${context.nextStep}`);
+});
+ 
+formBridge.events.on('form.show', function (context) {
+  if (context.previousStep == null) {
+    console.log('初回表示時, もしくは確認画面から戻った時');
+  } else {
+    console.log(`form.show, 前のステップ: ${context.previousStep}, 現在のステップ: ${context.currentStep}`);
+  }
+});
+ 
+// => ステップ 2 -> 3 へ移動したときは順番に以下のように出力される
+// "form.step.moving, 現在のステップ: 2, 次のステップ: 3"
+// "form.show, 前のステップ: 2, 現在のステップ: 3"
+form.field.change.(fieldCode)
+イベント発生タイミング
+フィールドの値が変更されたとき
+
+(fieldCode) にはフィールドコードを指定します。
+
+コンテキストオブジェクト
+プロパティ名
+説明
+value	変更後の値
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+setFieldValueError(fieldCode, errorMessage)	フィールドにエラーメッセージを設定する関数
+setSubtableFieldValueError(subtableFieldCode, fieldCodeInTable, rowIndex, errorMessage)	テーブル内フィールドにエラーメッセージを設定する関数
+preventDefault()	値の変更をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで値の変更をキャンセルすることができます。setFieldValue で値を上書きするときに使用することができます。
+
+formBridge.events.on('form.field.change.single_line_text', function (context) {
+  context.preventDefault();
+  context.setFieldValue('single_line_text', 'カスタマイズ');
+});
+また入力された値を検査してエラーメッセージを表示することもできます。
+
+formBridge.events.on('form.field.change.company_name', function (context) {
+  const companyName = context.value;
+  const personalName = formBridge.fn.getRecord().personal_name.value;
+ 
+  if (companyName !== '' && personalName !== '') {
+    context.setFieldValueError('company_name', '法人名と個人名の両方を入力することはできません。');
+    context.setFieldValueError('personal_name', '法人名と個人名の両方を入力することはできません。');
+  } else {
+    // エラーメッセージをクリア
+    context.setFieldValueError('company_name', null);
+    context.setFieldValueError('personal_name', null);
+  }
+});
+form.field.change.(fieldCode).(fieldCodeInTable)
+イベント発生タイミング
+テーブル内フィールドの値が変更されたとき
+
+(fieldCode) にはテーブルのフィールドコード、(fieldCodeInTable) にはテーブル内フィールドのフィールドコードを指定します。
+
+コンテキストオブジェクト
+プロパティ名
+説明
+rowIndex	値の変更があったフィールドの行数(0から始まるインデックス)
+value	変更後の値
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+setFieldValueError(fieldCode, errorMessage)	フィールドにエラーメッセージを設定する関数
+setSubtableFieldValueError(subtableFieldCode, fieldCodeInTable, rowIndex, errorMessage)	テーブル内フィールドにエラーメッセージを設定する関数
+preventDefault()	値の変更をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで値の変更をキャンセルすることができます。setFieldValue で値を上書きするときに使用することができます。
+
+formBridge.events.on('form.field.change.subtable.single_line_text', function (context) {
+  context.preventDefault();
+  context.setSubtableFieldValue('subtable', 'single_line_text', context.rowIndex, 'カスタマイズ');
+});
+また入力された値を検査してエラーメッセージを表示することもできます。
+
+formBridge.events.on('form.field.change.subtable.product_category', function (context) {
+  const category = context.value;
+  const currentRow = formBridge.fn.getRecord().subtable.value[context.rowIndex];
+  const expirationDate = currentRow.value.expiration_date.value;
+ 
+  if (category === '食品' && expirationDate === '') {
+    context.setSubtableFieldValueError(
+      'subtable',
+      'expiration_date',
+      0,
+      '食品の場合は期限を入力してください。'
+    );
+  } else {
+    // エラーメッセージをクリア
+    context.setSubtableFieldValueError('subtable', 'expiration_date', 0, null);
+  }
+});
+form.subtable.addRow.(fieldCode)
+イベント発生タイミング
+テーブルに行が追加する前
+
+(fieldCode) にはテーブルのフィールドコードを指定します。
+
+コンテキストオブジェクト
+プロパティ名
+説明
+newRow	追加される行のデータ
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+setFieldValueError(fieldCode, errorMessage)	フィールドにエラーメッセージを設定する関数
+setSubtableFieldValueError(subtableFieldCode, fieldCodeInTable, rowIndex, errorMessage)	テーブル内フィールドにエラーメッセージを設定する関数
+preventDefault()	行の追加をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで行の追加をキャンセルすることができます。
+
+formBridge.events.on('form.subtable.addRow.myTable', function (context) {
+  const record = formBridge.fn.getRecord();
+  const rowsCount = record.myTable.value.length;
+  const limited = record.limited.value.length > 0;
+ 
+  if (limited && rowsCount >= 5) {
+    // limited のとき6行以上追加する操作を不可にする
+    context.preventDefault();
+  }
+});
+form.subtable.removeRow.(fieldCode)
+イベント発生タイミング
+テーブルから行が削除されたとき
+
+(fieldCode) にはテーブルのフィールドコードを指定します。
+
+コンテキストオブジェクト
+プロパティ名
+説明
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+setFieldValueError(fieldCode, errorMessage)	フィールドにエラーメッセージを設定する関数
+setSubtableFieldValueError(subtableFieldCode, fieldCodeInTable, rowIndex, errorMessage)	テーブル内フィールドにエラーメッセージを設定する関数
+rowIndex	削除対象の行数(0から始まるインデックス)
+preventDefault()	行の削除をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで行の削除をキャンセルすることができます。
+
+formBridge.events.on('form.subtable.removeRow.myTable', function (context) {
+  const record = formBridge.fn.getRecord();
+  const removingRow = record.myTable.value[context.rowIndex];
+ 
+  if (removingRow.value.price.value > 1000) {
+    // priceが1000以上の行は削除不可
+    context.preventDefault();
+  }
+});
+form.kviewerLookup.selectRecord.(fieldCode)
+イベント発生タイミング
+kViewer ルックアップフィールドのダイアログ上でkintoneレコードが選択されたとき
+
+コンテキストオブジェクト
+プロパティ名
+説明
+getSelectedKintoneRecord()	kViewerルックアップフィールドのダイアログ上で選択されたkintoneレコードを取得する関数
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+setFieldValueError(fieldCode, errorMessage)	フィールドにエラーメッセージを設定する関数
+setSubtableFieldValueError(subtableFieldCode, fieldCodeInTable, rowIndex, errorMessage)	テーブル内フィールドにエラーメッセージを設定する関数
+preventDefault()	選択されたレコードをフォーム上のフィールドにセットする処理をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように getSelectedKintoneRecord を呼び出すことで選択されたkintoneレコードを取得することができます。取得元の API ビューで設定したすべてのフィールドを参照できるため、組織選択フィールドなどフォーム上のフィールドにはセットできない種類のフィールドの値などはこちらから取得できます。
+
+formBridge.events.on('form.kviewerLookup.selectRecord.myKViewerLookup', function (context) {
+  const selectedRecord = context.getSelectedKintoneRecord();
+  console.log(selectedRecord);
+  // => { "$id": { type: '__ID__', value: '1' }, field1: { type: 'NUMBER', value: '1' }, ... }
+});
+なお選択されたレコードの値をフォーム上のフィールドにセットする処理はこのイベントの後で実行されるため、このイベント内でそれらのフィールドにセットした値は上書きされます。セットした値を保持する、または選択したレコードを反映しない場合は preventDefault を呼び出して選択されたレコードをフォーム上のフィールドにセットする処理をキャンセルしてください。
+
+formBridge.events.on('form.kviewerLookup.selectRecord.myKViewerLookup', function (context) {
+  const selectedRecord = context.getSelectedKintoneRecord();
+  if (selectedRecord.選択可能.value === '不可') {
+    // 選択されたレコードをフォーム上に反映しない
+    context.preventDefault();
+  }
+});
+form.kviewerLookup.selectRecord.(fieldCode).(fieldCodeInTable)
+イベント発生タイミング
+テーブル内の kViewer ルックアップフィールドのダイアログ上でkintoneレコードが選択されたとき
+
+(fieldCode) にはテーブルのフィールドコード、(fieldCodeInTable) にはテーブル内フィールドのフィールドコードを指定します。
+
+コンテキストオブジェクト
+プロパティ名
+説明
+rowIndex	値の変更があったフィールドの行数(0から始まるインデックス)
+getSelectedKintoneRecord()	kViewerルックアップフィールドのダイアログ上で選択されたkintoneレコードを取得する関数
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+setFieldValueError(fieldCode, errorMessage)	フィールドにエラーメッセージを設定する関数
+setSubtableFieldValueError(subtableFieldCode, fieldCodeInTable, rowIndex, errorMessage)	テーブル内フィールドにエラーメッセージを設定する関数
+preventDefault()	選択されたレコードを同じ行内のフィールドにセットする処理をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように getSelectedKintoneRecord を呼び出すことで選択されたkintoneレコードを取得することができます。取得元の API ビューで設定したすべてのフィールドを参照できるため、組織選択フィールドなどフォーム上のフィールドにはセットできない種類のフィールドの値などはこちらから取得できます。
+
+formBridge.events.on('form.kviewerLookup.selectRecord.myTable.myKViewerLookup', function (context) {
+  const selectedRecord = context.getSelectedKintoneRecord();
+  console.log(selectedRecord);
+  // => { "$id": { type: '__ID__', value: '1' }, field1: { type: 'NUMBER', value: '1' }, ... }
+});
+なお選択されたレコードの値を同じ行内のフィールドにセットする処理はこのイベントの後で実行されるため、このイベント内でそれらのフィールドにセットした値は上書きされます。セットした値を保持する、または選択したレコードを反映しない場合は preventDefault を呼び出して選択されたレコードを行内のフィールドにセットする処理をキャンセルしてください。
+
+formBridge.events.on('form.kviewerLookup.selectRecord.myTable.myKViewerLookup', function (context) {
+  const selectedRecord = context.getSelectedKintoneRecord();
+  if (selectedRecord.選択可能.value === '不可') {
+    // 選択されたレコードをフォーム上に反映しない
+    context.preventDefault();
+  }
+});
+confirm.show
+イベント発生タイミング
+確認画面を表示したとき
+
+コンテキストオブジェクト
+プロパティ名
+説明
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+confirm.submit
+イベント発生タイミング
+確認画面で回答ボタンをクリックしたとき
+
+コンテキストオブジェクト
+プロパティ名
+説明
+setFieldValue(fieldCode, newValue)	フィールドの値を設定する関数
+setSubtableFieldValue(tableFieldCode, fieldCodeInTable, rowIndex, newValue)	テーブル内フィールドの値を設定する関数
+preventDefault()	回答処理をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで回答処理がキャンセルされ、確認画面に留まります。
+
+formBridge.events.on('confirm.submit', function (context) {
+  context.preventDefault();
+});
+confirm.submitted
+イベント発生タイミング
+確認画面で回答ボタンをクリックし回答保存プロセスが完了した後
+
+コンテキストオブジェクト
+プロパティ名
+説明
+preventDefault()	完了画面への遷移をキャンセルする関数
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+例
+以下のように preventDefault を呼び出すことで完了画面への遷移がキャンセルされます。特に完了画面を表示せずに別のページを表示したいときに利用できます。
+
+formBridge.events.on('confirm.submitted', function (context) {
+  // 完了画面を表示せずに https://example.com へリダイレクト
+  context.preventDefault();
+  window.location.href = 'https://example.com';
+});
+finish.show
+イベント発生タイミング
+完了画面を表示したとき
+
+コンテキストオブジェクト
+プロパティ名
+説明
+(コンテキストオブジェクトなし)	-
+※ コンテキストオブジェクトには 旧関数 getRecord も含まれています。既存のスクリプトとの互換性のため引き続き利用可能ですが、今後は formBridge.fn.getRecord をご利用ください。
+error.show
+イベント発生タイミング
+エラーの要素を表示したとき
+
+コンテキストオブジェクト
+プロパティ名
+説明
+(コンテキストオブジェクトなし)	-
+FormBridgeクラス
+公開フォーム内の要素に以下のように「fb-」で始まるクラスを付与しています。これらはCSSによる見た目のカスタマイズや、JavaScriptカスタマイズの関数内でDOM要素を取得する際に使用することができます。
+
+fb-custom--form-layout
+要素：フォームの表示領域全体
+
+fb-custom--header
+要素：ヘッダー要素
+
+fb-custom--background
+要素：背景要素
+
+fb-custom--main
+要素: フォームタイトル・フィールド・ボタン等を含む要素
+
+fb-custom--title-layout
+要素: フォームタイトルの余白等を設定している要素
+
+fb-custom--title
+要素：フォームタイトルの文字を表示している要素
+
+fb-custom--content
+要素：フォーム要素
+
+fb-custom--content--form
+要素：ページ(body)要素(回答入力画面)
+
+fb-custom--content--confirm
+要素：ページ(body)要素(回答確認画面)
+
+fb-custom--content--finish
+要素：ページ(body)要素(回答完了画面)
+
+fb-custom--content--error
+要素：ページ(body)要素(エラー画面)
+
+fb-custom--content--divider
+要素: フィールドの表示領域とボタンの表示領域の境界線要素
+
+fb-custom--button--submit
+要素：回答ボタン要素
+
+fb-custom--button--confirm
+要素：確認ボタン要素
+
+fb-custom--button--back
+要素：戻るボタン要素
+
+fb-custom--step--stepper
+要素：ステッパー要素(ステップフォーム時)
+
+fb-custom--step--pager
+要素：ページ要素(ステップフォーム時)
+
+fb-custom--step--button--next
+要素：次へボタン要素(ステップフォーム時)
+
+fb-custom--step--button--back
+要素：戻るボタン要素(ステップフォーム時)
+
+fb-custom--fields-area
+要素: フィールドを表示している領域全体の要素
+
+fb-custom--fields-row
+要素: フィールドを配置している行要素
+
+fb-custom--field
+要素 : 回答入力画面におけるフィールド要素
+
+要素には以下のカスタムデータ属性がついており、要素を柔軟に指定するのに活用することができます
+
+属性名
+値
+data-field-code	該当要素のフィールドコード
+data-field-type	該当要素のフィールドタイプ
+fb-custom--field-label
+要素: 回答入力画面におけるフィールドのラベル要素
+
+fb-custom--field-label--required-sign
+要素: フィールドのラベルに表示される必須項目の記号要素(必須項目が設定されたフィールドのみ)
+
+fb-custom--subtable-field
+要素 : 回答入力画面におけるテーブル内のフィールド要素
+
+要素には以下のカスタムデータ属性がついており、要素を柔軟に指定するのに活用することができます
+
+属性名
+値
+data-field-code	該当要素のフィールドコード
+data-field-type	該当要素のフィールドタイプ
+fb-custom--confirm-field
+要素: 確認画面におけるフィールド要素
+
+要素には以下のカスタムデータ属性がついており、要素を柔軟に指定するのに活用することができます
+
+属性名
+値
+data-field-code	該当要素のフィールドコード
+data-field-type	該当要素のフィールドタイプ
+fb-custom--confirm-field-label
+要素: 確認画面におけるフィールドのラベル要素
+
+fb-custom--confirm-subtable-field
+要素: 確認画面におけるテーブル内のフィールド要素
+
+要素には以下のカスタムデータ属性がついており、要素を柔軟に指定するのに活用することができます
+
+属性名
+値
+data-field-code	該当要素のフィールドコード
+data-field-type	該当要素のフィールドタイプ
+fb-custom--print
+要素：書類出力ボタン(PC連携)
+
+fb-custom--my-page
+要素：Myページ遷移ボタン要素(kV連携)
+
+©Toyokumo, Inc.   FormBridge  Ver.1.37.16
+JavaScriptカスタマイズ | FormBridge

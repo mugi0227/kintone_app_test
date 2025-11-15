@@ -1,0 +1,285 @@
+/* --- フォームブリッジ標準UIの調整 --- */
+.fb-custom--field[data-field-type="RADIO_BUTTON"] {
+  display: none !important;
+}
+
+.fb-custom--field[data-field-code="custom_ui_root"] > .fb-custom-field-label,
+.fb-custom--field[data-field-code="custom_ui_root"] > .fb-item-label {
+  display: none !important;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* --- カスタムUI全体 --- */
+.career-anchor-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  width: min(960px, 100%);
+  margin: 10px auto 40px;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* --- 質問カード --- */
+.question-card {
+  display: none;
+  padding: 24px;
+  margin-bottom: 20px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+.question-card.active {
+  display: block;
+}
+.question-step {
+  font-size: 14px;
+  font-weight: bold;
+  color: #007bff;
+  margin-bottom: 8px;
+}
+.question-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.answer-buttons {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.answer-btn {
+  flex: 1;
+  min-width: 60px;
+  padding: 12px 8px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #007bff;
+  background-color: #f0f7ff;
+  border: 2px solid #bde0ff;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.answer-btn:hover {
+  background-color: #dbeeff;
+  border-color: #007bff;
+}
+.answer-btn.selected {
+  color: #fff;
+  background-color: #007bff;
+  border-color: #0056b3;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+.answer-label {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  color: #555;
+  margin-top: 4px;
+}
+.answer-btn.selected .answer-label {
+  color: #fff;
+}
+
+/* --- ナビゲーション --- */
+.navigation-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  gap: 12px;
+}
+.nav-btn {
+  flex: 1;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #6c757d;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.nav-btn:hover {
+  background-color: #5a6268;
+}
+.nav-btn#next-btn {
+  background-color: #007bff;
+}
+.nav-btn#next-btn:hover {
+  background-color: #0056b3;
+}
+.nav-btn#show-results-btn {
+  flex: 2;
+  padding: 16px;
+  font-size: 18px;
+  background-color: #28a745;
+}
+.nav-btn.primary {
+  background-color: #007bff;
+}
+.nav-btn.primary:hover {
+  background-color: #0056b3;
+}
+.nav-btn#show-results-btn:hover {
+  background-color: #218838;
+}
+.nav-btn:disabled {
+  background-color: #ced4da;
+  cursor: not-allowed;
+}
+
+/* --- お気に入りステージ --- */
+#favorite-stage {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+.favorite-stage__description {
+  margin-bottom: 16px;
+  color: #555;
+}
+.favorite-questions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.favorite-question-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fafafa;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.favorite-question-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.15);
+}
+.favorite-question-card--selected {
+  border-color: #007bff;
+  background: #eef5ff;
+}
+.favorite-question-card--locked {
+  cursor: not-allowed;
+  position: relative;
+}
+.favorite-question-card__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+.favorite-question-card__text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  margin-bottom: 8px;
+}
+.favorite-question-card__badge {
+  font-size: 12px;
+  color: #007bff;
+}
+.favorite-question-card--locked .favorite-question-card__badge {
+  color: #c2185b;
+}
+.favorite-stage__notice {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+}
+.favorite-stage__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* --- 結果表示エリア --- */
+#result-stage {
+  width: 100%;
+}
+#result-stage {
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.results-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.results-column {
+  flex: 1;
+  min-width: 280px;
+}
+.result-highlight {
+  margin-bottom: 20px;
+  padding: 18px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #007bff, #00b4d8);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(0, 123, 255, 0.15);
+}
+.result-highlight-title {
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.result-highlight-value {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+.result-highlight-description {
+  margin: 12px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#radar-chart-container {
+  width: 100%;
+  min-height: 320px;
+}
+.score-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-bottom: 30px;
+}
+.score-card {
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.score-card-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+}
+.score-card-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #007bff;
+  text-align: right;
+}
+
+.career-anchor-host {
+  width: 100%;
+}
