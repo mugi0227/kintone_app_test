@@ -125,13 +125,16 @@
     chart: null,
   };
   let fbContext = null;
+  let isTransitioning = false;
 
   /**
    * イベント登録
    */
   formBridge.events.on('form.show', (context) => {
     fbContext = context;
-    hydrateState(formBridge.fn.getRecord());
+    const record = formBridge.fn.getRecord();
+    clearInitialRadioSelections(record);
+    hydrateState(record);
 
     const mount = prepareMountPoint();
     if (!mount) {
@@ -166,6 +169,10 @@
     const container = document.createElement('div');
     container.className = 'career-anchor-container';
     container.innerHTML = `
+      <div class="rpg-banner">
+        <div class="rpg-banner__title">CAREER ANCHOR QUEST</div>
+        <p class="rpg-banner__subtitle">勇者よ、己の価値観を見つける旅へ出発しよう！</p>
+      </div>
       <section id="question-stage">
         <div id="questions-wrapper"></div>
         <div class="navigation-controls">
@@ -262,8 +269,9 @@
   }
 
   function showFavoriteStage() {
-    if (Object.keys(state.answers).length < TOTAL_QUESTIONS) {
-      alert('未回答の質問があります。');
+    const missing = getUnansweredQuestionLabels();
+    if (missing.length) {
+      alert(`未回答の質問があります。\n${missing.join(', ')}`);
       return;
     }
 
@@ -284,7 +292,14 @@
 
     document.getElementById('question-stage').classList.add('hidden');
     document.getElementById('favorite-stage').classList.add('hidden');
-    document.getElementById('result-stage').classList.remove('hidden');
+    const resultStage = document.getElementById('result-stage');
+    resultStage.classList.remove('hidden');
+    resultStage.classList.add('result-stage-hidden');
+    setTimeout(() => {
+      resultStage.classList.remove('result-stage-hidden');
+      resultStage.classList.add('result-stage-enter');
+      setTimeout(() => resultStage.classList.remove('result-stage-enter'), 1800);
+    }, 200);
 
     const scores = calculateScores();
     persistScores(scores);
@@ -304,7 +319,7 @@
     const value = Number(button.dataset.value);
 
     state.answers[qCode] = value;
-    fbContext.setFieldValue(qCode, value);
+    fbContext.setFieldValue(qCode, String(value));
 
     const card = button.closest('.question-card');
     card.querySelectorAll('.answer-btn').forEach((btn) => btn.classList.remove('selected'));
@@ -315,9 +330,29 @@
   }
 
   function navigateStep(direction) {
+    if (isTransitioning) {
+      return;
+    }
+
     const next = state.currentStep + direction;
     if (next < 1 || next > TOTAL_QUESTIONS) {
       return;
+    }
+
+    const currentCard = document.getElementById(`card-q${state.currentStep}`);
+    const targetCard = document.getElementById(`card-q${next}`);
+    if (currentCard && targetCard) {
+      isTransitioning = true;
+      currentCard.classList.add('slide-out');
+      targetCard.classList.add(direction > 0 ? 'slide-in-right' : 'slide-in-left');
+      setTimeout(() => {
+        currentCard.classList.remove('slide-out');
+        targetCard.classList.remove('slide-in-right', 'slide-in-left');
+        isTransitioning = false;
+      }, 350);
+    }
+    if (!currentCard || !targetCard) {
+      isTransitioning = false;
     }
     state.currentStep = next;
     syncQuestionUI();
@@ -348,13 +383,24 @@
     if (!prevBtn || !nextBtn || !favoriteBtn) return;
 
     prevBtn.disabled = state.currentStep === 1;
-    nextBtn.classList.remove('hidden');
-    favoriteBtn.classList.add('hidden');
-
     const answeredAll = Object.keys(state.answers).length === TOTAL_QUESTIONS;
-    if (state.currentStep === TOTAL_QUESTIONS && answeredAll) {
+    const missing = answeredAll ? [] : getUnansweredQuestionLabels();
+
+    if (state.currentStep === TOTAL_QUESTIONS) {
       nextBtn.classList.add('hidden');
       favoriteBtn.classList.remove('hidden');
+      favoriteBtn.disabled = !answeredAll;
+      if (answeredAll) {
+        favoriteBtn.textContent = 'お気に入り選択へ';
+      } else {
+        const preview = missing.slice(0, 6).join(', ');
+        favoriteBtn.textContent = `未回答: ${preview}${missing.length > 6 ? '…' : ''}`;
+      }
+    } else {
+      nextBtn.classList.remove('hidden');
+      favoriteBtn.classList.add('hidden');
+      favoriteBtn.disabled = true;
+      favoriteBtn.textContent = 'お気に入り選択へ';
     }
   }
 
@@ -670,6 +716,32 @@
     });
 
     state.favorites = state.favorites.slice(0, 3);
+  }
+
+  function clearInitialRadioSelections(record) {
+    if (!isNewRecord(record)) {
+      return;
+    }
+    QUESTIONS.forEach(({ code }) => {
+      if (record?.[code]) {
+        fbContext.setFieldValue(code, '');
+        record[code].value = '';
+      }
+    });
+  }
+
+  function getUnansweredQuestionLabels() {
+    return QUESTIONS.filter((question) => !state.answers[question.code])
+      .map((question) => `Q${question.id}`);
+  }
+
+  function isNewRecord(record) {
+    const idField = record?.$id;
+    if (!idField) {
+      return true;
+    }
+    const value = typeof idField.value === 'string' ? idField.value.trim() : idField.value;
+    return !value;
   }
 
   /**
