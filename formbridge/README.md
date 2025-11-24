@@ -23,7 +23,7 @@
    - `css/style.css`（CSS カスタマイズ）  
    - `Chart.js`（公式 CDN からダウンロードした `chart.umd.js` 等）
 3. **kintone フィールド**  
-   - 質問: `q1`〜`q40`（数値 or ラジオ）。FormBridge 側では非表示だが値は受け取る。  
+   - 質問: `q_1`〜`q_40`（数値 or ラジオ）。FormBridge 側では非表示だが値は受け取る。  
    - スコア: `score_tf` など 8 フィールド（数値フィールド推奨）。  
    - お気に入り: `favorite_1`〜`favorite_3`（文字列/ドロップダウンどちらでも可、JS 側がコード値をセット）。  
    - 結果サマリ: `career_type_result`（複数行文字列等）。

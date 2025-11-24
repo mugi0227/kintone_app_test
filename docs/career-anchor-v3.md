@@ -3,7 +3,7 @@
 最新バージョン（`src/career-anchor-v3.js`）は kintone UI Component へ依存せず、標準の DOM だけで以下を実現します。
 
 ## 必須フィールド
-- ラジオボタン `q1`〜`q40`（選択肢 1〜5）
+- ラジオボタン `q_1`〜`q_40`（選択肢 1〜5）
 - 文字列（1行） `favorite_1`, `favorite_2`, `favorite_3`
 - 数値 `score_tf`, `score_gm`, `score_au`, `score_se`, `score_ec`, `score_sv`, `score_ch`, `score_ls`
 - 文字列（複数行） `career_type_result`

@@ -3,7 +3,7 @@
 ## 方針
 1. **依存する要素の限定**  
    - FormBridge 標準で生成される `fb-question`, `fb-section`, `fb-button` など、公式がバージョン互換を維持しているクラス／data属性のみをターゲットにする。  
-   - `document.querySelector('[data-fb-question="q1"]')` のように data 属性で取得することで、フロントエンドの構造変化に強くする。  
+   - `document.querySelector('[data-fb-question="q_1"]')` のように data 属性で取得することで、フロントエンドの構造変化に強くする。  
    - 任意のラッパー要素が必要な場合は カスタムHTMLブロックで自前の `data-role` を付与し、その要素だけを参照する。
 
 2. **スタイル適用**  
